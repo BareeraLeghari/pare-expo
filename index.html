@@ -119,6 +119,15 @@
   // ▲▲ The event code comes from the QR link: ...?code=YOUR-CODE ▲▲
 
   var CODE = new URLSearchParams(location.search).get('code') || '';
+  // Cookie approach: each phone gets a random ID saved in a cookie on this page.
+  // It's sent with every photo, so the per-person limit works even on shared Wi-Fi.
+  function newId(){ return (crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0;return (c==='x'?r:(r&3|8)).toString(16);})); }
+  function readCookie(name){ var m=document.cookie.match(new RegExp('(?:^|; )'+name+'=([^;]*)')); return m?decodeURIComponent(m[1]):''; }
+  var DEVICE=readCookie('pare_device');
+  if(!/^[0-9a-f-]{36}$/i.test(DEVICE)){
+    DEVICE=newId();
+    document.cookie='pare_device='+DEVICE+'; Max-Age=604800; Path=/; SameSite=Lax; Secure'; // kept for 7 days
+  }
   var MAX_BYTES = 4.5 * 1024 * 1024, MAX_SIDE = 2048;
   var $ = function(id){return document.getElementById(id);};
   var agree=$('agree'), choose=$('choose'), file=$('file'), drop=$('drop'), stage=$('stage'),
@@ -165,7 +174,7 @@
     var minWait=new Promise(function(r){setTimeout(r,2600);});
 
     var check=prepare(f).then(function(p){
-      var fd=new FormData(); fd.append('code',CODE); fd.append('photo',p,p.name||'photo.jpg');
+      var fd=new FormData(); fd.append('code',CODE); fd.append('device',DEVICE); fd.append('photo',p,p.name||'photo.jpg');
       return fetch(FUNCTION_URL,{method:'POST',body:fd});
     }).then(function(res){
       return res.json().catch(function(){return {};}).then(function(d){
